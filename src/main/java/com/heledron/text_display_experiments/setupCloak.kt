@@ -1,36 +1,3 @@
-package com.heledron.text_display_experiments
-
-import com.heledron.text_display_experiments.utilities.*
-import com.heledron.text_display_experiments.utilities.rendering.*
-import org.bukkit.*
-import org.bukkit.util.RayTraceResult
-import org.bukkit.util.Vector
-import org.joml.Matrix4f
-import org.joml.Quaternionf
-import org.joml.Vector4f
-import kotlin.random.Random
-
-fun setupCloak() {
-    val cloak = CustomItemComponent("cloak")
-    customItemRegistry += createNamedItem(Material.GREEN_DYE, "Handheld Cloak").attach(cloak)
-
-    cloak.onHeldTick { player, _ ->
-        val alpha = player.scoreboardTags.firstOrNull { it.startsWith("cloak_alpha.") }?.substringAfter(".")?.toIntOrNull() ?: 255
-        val noise = player.scoreboardTags.firstOrNull { it.startsWith("cloak_noise.") }?.substringAfter(".")?.toDoubleOrNull() ?: 30.0
-
-
-        SharedEntityRenderer.render("cloak" to player, cloak(
-            world = player.world,
-            position = player.eyeLocation.toVector(),
-            rotation = player.eyeLocation.getQuaternion(),
-            eyePosition = player.eyeLocation.toVector().add(player.eyeLocation.direction.multiply(4.0)),
-            alpha = alpha,
-            noiseAmount = noise,
-        ))
-
-    }
-}
-
 fun cloak(
     world: World,
     position: Vector,
@@ -39,6 +6,9 @@ fun cloak(
     alpha: Int,
     noiseAmount: Double,
 ): RenderEntityGroup {
+
+    // Force alpha to 0 (fully transparent)
+    val alpha = 0
 
     val xSize = 1f
     val ySize = 1.5f
@@ -85,8 +55,7 @@ fun cloak(
                         val positionSeed = hitBlock.hitPosition
                         val seed = (positionSeed.x * 1000 + positionSeed.y * 100 + positionSeed.z * 10).toInt() + x * 10000 + y * 10_0000
 
-                        color.noise(noiseAmount, seed).setAlpha(alpha)
-//                        Color.RED.setAlpha(180)
+                        color.noise(noiseAmount, seed).setAlpha(alpha) // Apply alpha to the block color
                     } else {
                         val skyBottomColor = Color.fromRGB(0xd6edfa)
                         val skyTopColor = Color.fromRGB(0x5e92d4)
@@ -96,7 +65,7 @@ fun cloak(
 
                         val fraction = ((pitch - skyBottom) / (skyTop - skyBottom)).coerceIn(.0, 1.0)
 
-                        skyBottomColor.lerpOkLab(skyTopColor, fraction).setAlpha(alpha) //.setAlpha(0)
+                        skyBottomColor.lerpOkLab(skyTopColor, fraction).setAlpha(alpha) // Apply alpha to the sky color
                     }
 
                     it.backgroundColor = (it.backgroundColor ?: newColor).lerpOkLab(newColor, .3)
@@ -108,41 +77,3 @@ fun cloak(
 
     return group
 }
-
-
-@Suppress("SameParameterValue")
-private fun World.raycastGround(position: Vector, direction: Vector, maxDistance: Double): RayTraceResult? {
-    return this.rayTraceBlocks(position.toLocation(this), direction, maxDistance, FluidCollisionMode.NEVER, true)
-}
-
-private fun Color.noise(amount: Double, seed: Int): Color {
-    if (amount == 0.0) return this
-
-    val random = Random(seed)
-    val noise = random.nextDouble(-amount, amount)
-    return Color.fromARGB(
-        alpha,
-        (red + noise).coerceIn(0.0, 255.0).toInt(),
-        (green + noise).coerceIn(0.0, 255.0).toInt(),
-        (blue + noise).coerceIn(0.0, 255.0).toInt(),
-    )
-}
-
-
-
-//SharedEntityRenderer.render("test" to x to y, blockRenderEntity(
-//world = player.world,
-//position = startCast.toVector(),
-//init = {
-//    it.brightness = Brightness(15, 15)
-//    it.interpolationDuration = 1
-//    it.block = Material.REDSTONE_BLOCK.createBlockData()
-//},
-//update = {
-//    it.setTransformationMatrix(Matrix4f()
-//        .rotate(Quaternionf().rotateTo(FORWARD_VECTOR.toVector3f(), direction.toVector3f()))
-//        .scale(.01f, .01f, 15f)
-//        .translate(.5f, .5f, 0f)
-//    )
-//}
-//))
